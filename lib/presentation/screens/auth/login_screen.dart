@@ -63,13 +63,19 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _loginWithEmail() async {
     if (!_emailFormKey.currentState!.validate()) return;
+    final email = _emailCtrl.text.trim();
     final auth = context.read<AuthProvider>();
-    final success = await auth.loginWithEmailRequestOtp(
-        _emailCtrl.text.trim(), _passwordCtrl.text);
+
+    final success = await auth.loginWithEmailRequestOtp(email, _passwordCtrl.text);
     if (!mounted) return;
     if (success) {
-      context.push('/otp-dogrulama',
-          extra: {'rememberMe': _emailRememberMe, 'loginMode': 'email'});
+      // Backend bypass_otp döndürdüyse zaten authenticated — doğrudan panele git
+      if (auth.status == AuthStatus.authenticated) {
+        context.go('/panel');
+      } else {
+        context.push('/otp-dogrulama',
+            extra: {'rememberMe': _emailRememberMe, 'loginMode': 'email'});
+      }
     }
   }
 

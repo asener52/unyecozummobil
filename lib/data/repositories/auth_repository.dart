@@ -26,13 +26,20 @@ class AuthRepository {
   }
 
   /// E-posta + şifre doğrula → kayıtlı telefona SMS OTP gönder.
+  /// Test hesabı (test@unye.bel.tr) için backend bypass_otp:true ile token döner.
   Future<Map<String, dynamic>> loginWithEmailAndRequestOtp(
       String email, String password) async {
     final response = await _api.post(
       ApiConstants.loginWithOtp,
       data: {'email': email, 'password': password},
     );
-    return response.data as Map<String, dynamic>;
+    final data = response.data as Map<String, dynamic>;
+    // bypass_otp: backend token döndürdüyse kaydet
+    final token = data['token'] as String?;
+    final userJson = data['user'] as Map<String, dynamic>?;
+    if (token != null) await SecureStorage.saveToken(token);
+    if (userJson != null) await SecureStorage.saveUser(jsonEncode(userJson));
+    return data;
   }
 
   /// Telefon numarasına OTP gönder.

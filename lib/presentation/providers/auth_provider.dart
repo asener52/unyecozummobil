@@ -130,12 +130,26 @@ class AuthProvider extends ChangeNotifier {
   // ── Telefon OTP Girişi ────────────────────────────────────────────────────
 
   /// E-posta + şifre ile giriş başlat → telefona SMS OTP gönder.
+  /// Test hesabı için backend bypass_otp:true + token döndürür, OTP adımı atlanır.
   Future<bool> loginWithEmailRequestOtp(String email, String password) async {
     _loading = true;
     _error = null;
     notifyListeners();
     try {
       final data = await _repo.loginWithEmailAndRequestOtp(email, password);
+
+      // Backend OTP olmadan doğrudan token döndürdü (test/mağaza inceleme hesabı)
+      if (data['bypass_otp'] == true || data['token'] != null) {
+        final userJson = data['user'] as Map<String, dynamic>?;
+        _user = userJson != null ? User.fromJson(userJson) : null;
+        _pendingOtpToken = null;
+        _pendingPhoneMasked = null;
+        _status = AuthStatus.authenticated;
+        _loading = false;
+        notifyListeners();
+        return true;
+      }
+
       _pendingOtpToken = data['otp_token'] as String?;
       _pendingPhoneMasked = data['phone_masked'] as String?;
       _loading = false;
@@ -155,6 +169,19 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final data = await _repo.requestOtp(phone);
+
+      // Backend OTP olmadan doğrudan token döndürdü (test hesabına bağlı telefon)
+      if (data['bypass_otp'] == true || data['token'] != null) {
+        final userJson = data['user'] as Map<String, dynamic>?;
+        _user = userJson != null ? User.fromJson(userJson) : null;
+        _pendingOtpToken = null;
+        _pendingPhoneMasked = null;
+        _status = AuthStatus.authenticated;
+        _loading = false;
+        notifyListeners();
+        return true;
+      }
+
       _pendingOtpToken = data['otp_token'] as String?;
       _pendingPhoneMasked = data['phone_masked'] as String?;
       _loading = false;
